@@ -1,0 +1,8 @@
+{
+  "name": "hono-fixture",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "hono": "^4.6.0"
+  }
+}

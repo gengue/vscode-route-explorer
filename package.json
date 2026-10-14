@@ -1,0 +1,208 @@
+{
+  "name": "nodejs-path-explorer",
+  "displayName": "Node.js Path Explorer",
+  "description": "Path Operation Explorer for Hono (and Express, Fastify, NestJS) — browse routes and jump to their definitions.",
+  "version": "0.1.0",
+  "publisher": "placeholder",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gengue/vscode-route-explorer"
+  },
+  "bugs": {
+    "url": "https://github.com/gengue/vscode-route-explorer/issues"
+  },
+  "homepage": "https://github.com/gengue/vscode-route-explorer#readme",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "hono",
+    "express",
+    "fastify",
+    "nestjs",
+    "routes",
+    "nodejs",
+    "typescript",
+    "api"
+  ],
+  "icon": "media/icon.png",
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "workspaceContains:**/*.ts",
+    "workspaceContains:**/*.tsx",
+    "workspaceContains:**/*.js",
+    "workspaceContains:**/*.jsx",
+    "workspaceContains:**/*.mjs",
+    "workspaceContains:**/*.cjs",
+    "onCommand:nodePathExplorer.searchPathOperations"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "nodePathExplorer.searchPathOperations",
+        "title": "Search Path Operations...",
+        "category": "Node Routes",
+        "icon": "$(search)"
+      },
+      {
+        "command": "nodePathExplorer.refresh",
+        "title": "Refresh Path Operations",
+        "category": "Node Routes",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "nodePathExplorer.collapseAll",
+        "title": "Collapse All",
+        "category": "Node Routes",
+        "icon": "$(collapse-all)"
+      },
+      {
+        "command": "nodePathExplorer.copyPath",
+        "title": "Copy Path",
+        "category": "Node Routes"
+      },
+      {
+        "command": "nodePathExplorer.goToRouter",
+        "title": "Go to Router Definition",
+        "category": "Node Routes"
+      },
+      {
+        "command": "nodePathExplorer.goToPathOperation",
+        "title": "Go to Definition",
+        "category": "Node Routes"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "nodePathExplorer.copyPath",
+          "when": "false"
+        },
+        {
+          "command": "nodePathExplorer.goToRouter",
+          "when": "false"
+        },
+        {
+          "command": "nodePathExplorer.goToPathOperation",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "nodePathExplorer.searchPathOperations",
+          "when": "view == node-path-operation-explorer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "nodePathExplorer.refresh",
+          "when": "view == node-path-operation-explorer",
+          "group": "navigation@2"
+        },
+        {
+          "command": "nodePathExplorer.collapseAll",
+          "when": "view == node-path-operation-explorer",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "nodePathExplorer.copyPath",
+          "when": "view == node-path-operation-explorer && viewItem == route",
+          "group": "navigation"
+        },
+        {
+          "command": "nodePathExplorer.copyPath",
+          "when": "view == node-path-operation-explorer && viewItem == router",
+          "group": "navigation"
+        },
+        {
+          "command": "nodePathExplorer.goToRouter",
+          "when": "view == node-path-operation-explorer && viewItem == router",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "node-path-explorer",
+          "title": "Node Routes",
+          "icon": "media/icons/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "node-path-explorer": [
+        {
+          "id": "node-path-operation-explorer",
+          "name": "Path Operation Explorer",
+          "icon": "media/icons/activity.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "node-path-operation-explorer",
+        "contents": "No Hono, Express, Fastify, or NestJS routes found in this workspace.\n\nRoutes are discovered statically from JavaScript and TypeScript sources.\n\n[Refresh](command:nodePathExplorer.refresh)\n[Edit include/exclude globs](command:workbench.action.openSettings?%5B%22nodePathExplorer.include%22%5D)"
+      }
+    ],
+    "configuration": {
+      "title": "Node.js Path Explorer",
+      "properties": {
+        "nodePathExplorer.include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/*.{js,jsx,mjs,cjs,ts,tsx}"
+          ],
+          "scope": "resource",
+          "description": "Glob patterns of files to scan for HTTP routes."
+        },
+        "nodePathExplorer.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/out/**",
+            "**/coverage/**",
+            "**/*.d.ts",
+            "**/*.{test,spec}.{js,jsx,mjs,cjs,ts,tsx}",
+            "**/__tests__/**",
+            "**/.git/**"
+          ],
+          "scope": "resource",
+          "description": "Glob patterns of files and folders to skip while scanning."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "vscode:prepublish": "node esbuild.js --production",
+    "package": "vsce package",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/**/*.test.ts"
+  },
+  "dependencies": {
+    "typescript": "^5.6.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.2",
+    "tsx": "^4.19.2"
+  }
+}
