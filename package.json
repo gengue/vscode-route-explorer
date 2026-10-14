@@ -1,9 +1,9 @@
 {
   "name": "nodejs-path-explorer",
-  "displayName": "Node.js Path Explorer",
-  "description": "Path Operation Explorer for Hono (and Express, Fastify, NestJS) — browse routes and jump to their definitions.",
+  "displayName": "Hono Route Explorer",
+  "description": "Browse Hono routes in a sidebar, grouped by prefix, and jump to their definitions. Also reads Express, Fastify, and NestJS.",
   "version": "0.1.0",
-  "publisher": "placeholder",
+  "publisher": "gengue",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -12,7 +12,11 @@
   "bugs": {
     "url": "https://github.com/gengue/vscode-route-explorer/issues"
   },
-  "homepage": "https://github.com/gengue/vscode-route-explorer#readme",
+  "homepage": "https://github.com/gengue/vscode-route-explorer",
+  "galleryBanner": {
+    "color": "#F84810",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -22,15 +26,12 @@
   ],
   "keywords": [
     "hono",
-    "express",
-    "fastify",
-    "nestjs",
     "routes",
-    "nodejs",
-    "typescript",
-    "api"
+    "express",
+    "api",
+    "explorer"
   ],
-  "icon": "media/icon.png",
+  "icon": "images/icon.png",
   "main": "./dist/extension.js",
   "activationEvents": [
     "workspaceContains:**/*.ts",
