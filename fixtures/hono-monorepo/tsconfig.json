@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@shop/*": ["packages/*/src/index.ts"]
+    },
+    "strict": false,
+    "noEmit": true
+  }
+}
