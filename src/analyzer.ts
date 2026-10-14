@@ -129,6 +129,11 @@ export function analyzeFiles(filePaths: string[]): AppDefinition[] {
     moduleDetection: ts.ModuleDetectionKind.Force,
     strict: false,
     skipLibCheck: true,
+    // Do not follow imports into node_modules. A pnpm workspace resolves `hono`
+    // to a huge graph; loading it makes the scan fail or never finish, and the
+    // sidebar stays on "no routes". Imports are resolved by the export map below.
+    noResolve: true,
+    types: [],
     maxNodeModuleJsDepth: 0,
   };
 
@@ -154,6 +159,9 @@ class Session {
   private readonly cjsDefaultFunctions = new Map<string, ts.SignatureDeclaration>();
   /** Fastify plugin parameter -> every router that parameter was registered as. */
   private readonly paramBindings = new Map<ts.Symbol, RawRouter[]>();
+  /** Factory function -> the Hono instance it returns. `undefined` means it returns none. */
+  private readonly factoryRouterCache = new Map<ts.Node, RawRouter | undefined>();
+  private readonly factoryResolving = new Set<ts.Node>();
   private readonly sourceByPath = new Map<string, ts.SourceFile>();
   /** Nearest tsconfig.json, keyed by the directory we searched from. */
   private readonly tsconfigByDir = new Map<string, TsConfigInfo | undefined>();
@@ -213,6 +221,14 @@ class Session {
         node.initializer &&
         ts.isIdentifier(node.name)
       ) {
+        if (
+          this.isVariableExported(node) &&
+          (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))
+        ) {
+          // `export const createSharedRoutes = (deps) => new Hono()` — the arrow
+          // is what `app.route(prefix, createSharedRoutes(deps))` calls.
+          this.namedFunctions.set(this.exportKey(sf, node.name.text), node.initializer);
+        }
         const classification = this.classifyCreation(node.initializer);
         if (classification) {
           const router = this.createRouter(
@@ -461,7 +477,7 @@ class Session {
           target.routes.push({
             method: lower.toUpperCase() as HttpMethod,
             path: this.frameworkPath(target.framework, routePath),
-            functionName: handler.name,
+            functionName: this.handlerLabel(target.framework, split.handlers, handler.name),
             docstring: handler.docstring,
             location: this.locationOf(call.expression.name, sf),
           });
@@ -995,6 +1011,8 @@ class Session {
             if (inner?.framework === "hono") return inner;
           }
         }
+        const factory = this.routerFromFactoryCall(node);
+        if (factory) return factory;
       }
       const classification = this.classifyCreation(node);
       if (!classification) return undefined;
@@ -1225,6 +1243,101 @@ class Session {
       if (!ts.isSpreadElement(element)) last = this.unwrap(element);
     }
     return { name: this.expressionName(last), docstring: this.docOf(last) };
+  }
+
+  /**
+   * Named handlers stay as they are. An inline arrow on a Hono route uses
+   * `describeRoute({ operationId, summary })` from `hono-openapi`, or nothing.
+   */
+  private handlerLabel(framework: Framework, handlers: readonly ts.Expression[], fallback: string): string {
+    if (fallback && fallback !== "(anonymous)") return fallback;
+    if (framework !== "hono") return fallback;
+    const meta = this.describeRouteMeta(handlers);
+    return meta?.operationId || meta?.summary || "";
+  }
+
+  private describeRouteMeta(
+    handlers: readonly ts.Expression[],
+  ): { summary?: string; operationId?: string } | undefined {
+    for (const handler of handlers) {
+      const call = this.unwrap(handler);
+      if (!ts.isCallExpression(call) || !call.arguments[0]) continue;
+      const callee = call.expression;
+      const calleeName = ts.isIdentifier(callee)
+        ? callee.text
+        : ts.isPropertyAccessExpression(callee)
+          ? callee.name.text
+          : "";
+      if (calleeName !== "describeRoute") continue;
+      const config = this.unwrap(call.arguments[0]);
+      if (!ts.isObjectLiteralExpression(config)) continue;
+      const summary = this.literalProperty(config, "summary");
+      const operationId = this.literalProperty(config, "operationId");
+      if (!summary && !operationId) continue;
+      return { summary, operationId };
+    }
+    return undefined;
+  }
+
+  private literalProperty(obj: ts.ObjectLiteralExpression, name: string): string | undefined {
+    const value = this.propertyValue(obj, name);
+    if (!value) return undefined;
+    const resolved = this.resolveString(value);
+    return typeof resolved === "string" ? resolved : undefined;
+  }
+
+  /**
+   * `app.route('/prefix', createXRoutes(deps))` — the callee is a function
+   * whose body does `const app = new Hono(); ...; return app`.
+   */
+  private routerFromFactoryCall(call: ts.CallExpression): RawRouter | undefined {
+    const fn = this.asSignature(call.expression);
+    if (!fn) return undefined;
+    if (this.factoryRouterCache.has(fn)) return this.factoryRouterCache.get(fn);
+    if (this.factoryResolving.has(fn)) return undefined;
+    this.factoryResolving.add(fn);
+    const router = this.routerReturnedBy(fn);
+    this.factoryResolving.delete(fn);
+    this.factoryRouterCache.set(fn, router);
+    return router;
+  }
+
+  private routerReturnedBy(fn: ts.SignatureDeclaration): RawRouter | undefined {
+    if (
+      !ts.isFunctionDeclaration(fn) &&
+      !ts.isMethodDeclaration(fn) &&
+      !ts.isFunctionExpression(fn) &&
+      !ts.isArrowFunction(fn) &&
+      !ts.isConstructorDeclaration(fn)
+    ) {
+      return undefined;
+    }
+    const body = fn.body;
+    if (!body) return undefined;
+    if (!ts.isBlock(body)) return this.resolveRouter(body);
+    let found: RawRouter | undefined;
+    const visit = (node: ts.Node) => {
+      if (found) return;
+      if (
+        node !== fn &&
+        (ts.isFunctionDeclaration(node) ||
+          ts.isFunctionExpression(node) ||
+          ts.isArrowFunction(node) ||
+          ts.isMethodDeclaration(node))
+      ) {
+        return;
+      }
+      if (ts.isReturnStatement(node) && node.expression) {
+        const router = this.resolveRouter(node.expression);
+        if (router) {
+          found = router;
+          return;
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(fn);
+    return found;
   }
 
   private expressionName(expr: ts.Expression): string {

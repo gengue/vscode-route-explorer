@@ -137,14 +137,15 @@ export class PathOperationTreeProvider implements TreeDataProvider<ExplorerEleme
   private routeItem(element: RouteElement): TreeItem {
     const { route } = element;
     const item = new TreeItem(getRouteLabel(route));
-    item.description = route.functionName;
+    if (route.functionName) item.description = route.functionName;
     item.iconPath = this.methodIcon(route.method);
     item.contextValue = "route";
     item.id = `route:${route.location.filePath}:${route.location.line}:${route.method}:${route.path}`;
     const doc = route.docstring ? `\n\n---\n\n${route.docstring}` : "";
+    const handlerLine = route.functionName ? `**Function:** \`${route.functionName}\`\n\n` : "";
     const tooltip = new MarkdownString(
       `**${route.method}** \`${route.path}\`\n\n` +
-        `**Function:** \`${route.functionName}\`\n\n` +
+        handlerLine +
         `**Framework:** ${route.framework}\n\n` +
         `**File:** ${route.location.filePath}:${route.location.line + 1}` +
         doc,

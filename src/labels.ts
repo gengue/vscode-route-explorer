@@ -71,7 +71,23 @@ export function getRouterLabel(router: RouterDefinition, parentPrefix: string): 
  * that contains it (`backend/app` when the file lives in that directory),
  * which is the same convention the FastAPI explorer uses.
  */
+/**
+ * `apps/billing` or `packages/shared` when the file lives in a workspace
+ * package. That is the root row for each app in a pnpm monorepo.
+ */
+export function monorepoPackageLabel(filePath: string): string | undefined {
+  const parts = filePath.replace(/\\/g, "/").split("/");
+  const appsAt = parts.lastIndexOf("apps");
+  const packagesAt = parts.lastIndexOf("packages");
+  const index = Math.max(appsAt, packagesAt);
+  const name = parts[index + 1];
+  if (index < 0 || !name) return undefined;
+  return `${parts[index]}/${name}`;
+}
+
 export function getAppLabel(app: AppDefinition): string {
+  const packaged = monorepoPackageLabel(app.filePath);
+  if (packaged) return packaged;
   if (app.name !== "app") return app.name;
   const parts = app.filePath.split(/[/\\]/);
   const fileName = (parts.pop() ?? "").replace(/\.[^.]+$/, "");
