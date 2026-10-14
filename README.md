@@ -1,10 +1,12 @@
-# Node.js Path Explorer
+# Hono Route Explorer
 
 A VS Code sidebar for HTTP routes in TypeScript and JavaScript backends, in the spirit of the [FastAPI Path Operation Explorer](https://marketplace.visualstudio.com/items?itemName=FastAPILabs.fastapi-vscode).
 
 Hono is the primary target. The explorer also reads Express, Fastify, and NestJS. Discovery is static: the TypeScript compiler walks your sources, so nothing has to be running.
 
-![Path Operation Explorer on a Hono app](media/screenshot-tree.png)
+![Path Operation Explorer on a Hono app](https://raw.githubusercontent.com/gengue/vscode-route-explorer/main/media/screenshot-tree.png)
+
+The screenshot file is `media/screenshot-tree.png` in this repository. The repository is private, so that raw GitHub URL returns 404 to anyone who is not signed in, and the image may not render on the Marketplace page.
 
 ## What you can do
 
@@ -70,7 +72,7 @@ npx @vscode/vsce package
 code --install-extension nodejs-path-explorer-0.1.0.vsix
 ```
 
-Reload the window, open a Hono (or Express) workspace, and choose the Node Routes icon in the activity bar. The publisher in `package.json` is the placeholder `placeholder`.
+Reload the window, open a Hono (or Express) workspace, and choose the Node Routes icon in the activity bar. The extension id is `gengue.nodejs-path-explorer`.
 
 ## Development
 

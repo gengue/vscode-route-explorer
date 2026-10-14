@@ -8,8 +8,16 @@ describe("package manifest", () => {
   const root = repoRoot();
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")) as {
     name: string;
+    displayName: string;
+    description: string;
     publisher: string;
     license: string;
+    icon: string;
+    homepage: string;
+    keywords: string[];
+    galleryBanner: { color: string; theme: string };
+    repository: { url: string };
+    bugs: { url: string };
     main: string;
     activationEvents: string[];
     contributes: {
@@ -22,8 +30,18 @@ describe("package manifest", () => {
 
   it("is ready for vsce package", () => {
     assert.equal(manifest.name, "nodejs-path-explorer");
-    assert.equal(manifest.publisher, "placeholder");
+    assert.equal(manifest.displayName, "Hono Route Explorer");
+    assert.match(manifest.description, /Hono/);
+    assert.equal(manifest.publisher, "gengue");
     assert.equal(manifest.license, "MIT");
+    assert.equal(manifest.icon, "images/icon.png");
+    assert.equal(manifest.homepage, "https://github.com/gengue/vscode-route-explorer");
+    assert.equal(manifest.repository.url, "https://github.com/gengue/vscode-route-explorer");
+    assert.equal(manifest.bugs.url, "https://github.com/gengue/vscode-route-explorer/issues");
+    assert.deepEqual(manifest.keywords, ["hono", "routes", "express", "api", "explorer"]);
+    assert.equal(manifest.galleryBanner.color, "#F84810");
+    assert.equal(manifest.galleryBanner.theme, "dark");
+    assert.ok(fs.existsSync(path.join(root, manifest.icon)));
     assert.equal(manifest.main, "./dist/extension.js");
     assert.ok(manifest.activationEvents.some((event) => event.includes("*.ts")));
     assert.ok(manifest.activationEvents.some((event) => event.includes("*.js")));
