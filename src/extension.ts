@@ -13,7 +13,7 @@ import {
   type TextDocument,
 } from "vscode";
 import { analyzeFiles } from "./analyzer";
-import { DEFAULT_EXCLUDE, DEFAULT_INCLUDE, filterSourceFiles } from "./glob";
+import { DEFAULT_EXCLUDE, DEFAULT_INCLUDE, discoveryExcludeGlob, expandIncludePatterns, filterSourceFiles } from "./glob";
 import { countRoutesInApp, getRouteLabel, relativeFile } from "./labels";
 import type { SourceLocation } from "./types";
 import { PathOperationTreeProvider } from "./treeProvider";
@@ -123,8 +123,11 @@ async function discoverFiles(): Promise<string[]> {
   const include = readPatterns(config.get("include"), DEFAULT_INCLUDE);
   const exclude = readPatterns(config.get("exclude"), DEFAULT_EXCLUDE);
   const found = new Set<string>();
-  for (const pattern of include) {
-    const uris = await workspace.findFiles(pattern, "{**/node_modules/**,**/.git/**}", 20_000);
+  // No tight result cap: the exclude list has to drop build output first, or a
+  // monorepo search returns only `dist/` and the analyzer sees zero sources.
+  const excludeGlob = discoveryExcludeGlob();
+  for (const pattern of expandIncludePatterns(include)) {
+    const uris = await workspace.findFiles(pattern, excludeGlob, 100_000);
     for (const uri of uris) found.add(uri.fsPath);
   }
   return filterSourceFiles([...found], include, exclude);

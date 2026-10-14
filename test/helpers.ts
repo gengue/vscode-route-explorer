@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { analyzeFiles } from "../src/analyzer";
-import { filterSourceFiles } from "../src/glob";
+import { DEFAULT_EXCLUDE, DEFAULT_INCLUDE, filterSourceFiles } from "../src/glob";
 import { flattenRoutes } from "../src/labels";
 import type { AppDefinition, RouteDefinition } from "../src/types";
 
@@ -21,11 +21,7 @@ export function listFiles(dir: string): string[] {
 
 export function analyzeFixture(name: string): AppDefinition[] {
   const dir = path.join(repoRoot(), "fixtures", name);
-  const files = filterSourceFiles(
-    listFiles(dir),
-    ["**/*.{js,jsx,mjs,cjs,ts,tsx}"],
-    ["**/node_modules/**", "**/*.d.ts"],
-  );
+  const files = filterSourceFiles(listFiles(dir), DEFAULT_INCLUDE, DEFAULT_EXCLUDE);
   return analyzeFiles(files);
 }
 

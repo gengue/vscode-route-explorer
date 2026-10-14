@@ -2,7 +2,7 @@
   "name": "nodejs-path-explorer",
   "displayName": "Hono Route Explorer",
   "description": "Browse Hono routes in a sidebar, grouped by prefix, and jump to their definitions. Also reads Express, Fastify, and NestJS.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "gengue",
   "license": "MIT",
   "repository": {
@@ -180,7 +180,13 @@
             "**/*.d.ts",
             "**/*.{test,spec}.{js,jsx,mjs,cjs,ts,tsx}",
             "**/__tests__/**",
-            "**/.git/**"
+            "**/.git/**",
+            "**/.turbo/**",
+            "**/.next/**",
+            "**/.output/**",
+            "**/.cache/**",
+            "**/.pnpm/**",
+            "**/storybook-static/**"
           ],
           "scope": "resource",
           "description": "Glob patterns of files and folders to skip while scanning."

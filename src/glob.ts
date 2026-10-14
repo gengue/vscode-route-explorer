@@ -109,4 +109,54 @@ export const DEFAULT_EXCLUDE = [
   "**/*.{test,spec}.{js,jsx,mjs,cjs,ts,tsx}",
   "**/__tests__/**",
   "**/.git/**",
+  "**/.turbo/**",
+  "**/.next/**",
+  "**/.output/**",
+  "**/.cache/**",
+  "**/.pnpm/**",
+  "**/storybook-static/**",
 ];
+
+/**
+ * Directories and declarations dropped before `workspace.findFiles` applies its
+ * result cap. A pnpm monorepo's `dist/` and `node_modules` are large enough to
+ * fill a small cap and hide every `apps/<name>/src` file.
+ * Patterns here must not nest `{a,b}` groups; VS Code splits the outer braces on commas.
+ */
+export const DISCOVERY_EXCLUDES = [
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/out/**",
+  "**/coverage/**",
+  "**/.git/**",
+  "**/.turbo/**",
+  "**/.next/**",
+  "**/.output/**",
+  "**/.cache/**",
+  "**/.pnpm/**",
+  "**/storybook-static/**",
+  "**/*.d.ts",
+];
+
+export function discoveryExcludeGlob(): string {
+  return `{${DISCOVERY_EXCLUDES.join(",")}}`;
+}
+
+/** Turn `**\/*.{ts,tsx}` into `**\/*.ts` and `**\/*.tsx` so one extension cannot crowd out another. */
+export function expandIncludePatterns(patterns: string[]): string[] {
+  const expanded: string[] = [];
+  for (const pattern of patterns) {
+    const match = /^(.*)\{([^{}]+)\}(.*)$/.exec(pattern);
+    if (!match) {
+      expanded.push(pattern);
+      continue;
+    }
+    const [, prefix, body, suffix] = match;
+    for (const alternative of body.split(",")) {
+      const piece = alternative.trim();
+      if (piece) expanded.push(`${prefix}${piece}${suffix}`);
+    }
+  }
+  return expanded;
+}
