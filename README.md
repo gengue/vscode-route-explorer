@@ -1,52 +1,43 @@
 # Hono Route Explorer
 
-A VS Code sidebar for HTTP routes in TypeScript and JavaScript backends, in the spirit of the [FastAPI Path Operation Explorer](https://marketplace.visualstudio.com/items?itemName=FastAPILabs.fastapi-vscode).
-
-Hono is the primary target. The explorer also reads Express, Fastify, and NestJS. Discovery is static: the TypeScript compiler walks your sources, so nothing has to be running.
+Browse Hono routes in a sidebar, grouped by prefix, and jump to their definitions.
 
 ![Path Operation Explorer on a Hono app](https://raw.githubusercontent.com/gengue/vscode-route-explorer/main/media/screenshot-tree.png)
 
-The screenshot file is `media/screenshot-tree.png` in this repository. The repository is private, so that raw GitHub URL returns 404 to anyone who is not signed in, and the image may not render on the Marketplace page.
+## Install
 
-## What you can do
+[![Marketplace](https://img.shields.io/visual-studio-marketplace/v/gengue.nodejs-path-explorer?label=Marketplace&color=F84810)](https://marketplace.visualstudio.com/items?itemName=gengue.nodejs-path-explorer)
 
-- Open **Path Operation Explorer** from the activity bar.
-- Routes are grouped by mounted prefix (`/items`, `5 routes`), with the full path and handler name on each row.
-- Method dots use the usual colors: GET blue, POST green, PUT orange, PATCH teal, DELETE red.
-- Click a route or a group to jump to the definition.
-- Search from the view title (method, path, or handler).
-- Refresh, or let the tree update when you save a source file.
-- Collapse every group from the view title.
-- Right-click a route or group to copy its path.
+[Marketplace](https://marketplace.visualstudio.com/items?itemName=gengue.nodejs-path-explorer) · <a href="vscode:extension/gengue.nodejs-path-explorer">Install in VS Code</a>
 
-## Hono
+GitHub may not make the `vscode:` link clickable. Use the Marketplace link if it does not open.
 
-These shapes are resolved, including across files:
-
-```ts
-const app = new Hono().basePath("/api");
-
-app.get("/health", health).post("/ping", ping);
-app.on("DELETE", "/books/:id", removeBook);
-app.route("/books", books); // books may live in another file
-
-new Hono().get("/inline", inlineGet).post("/inline", inlinePost);
-
-const docs = new OpenAPIHono();
-docs.openapi(createRoute({ method: "get", path: "/status/{name}" }), statusHandler);
+```bash
+code --install-extension gengue.nodejs-path-explorer
 ```
 
-`{name}` from `@hono/zod-openapi` is shown as Hono writes it: `:name`. Nested `app.route()` mounts are joined, so a posts app mounted at `/:id/posts` under `/users` becomes `/users/:id/posts`.
+## Features
 
-In a monorepo the import can be a `tsconfig` `paths` alias (`@shop/users`) or a workspace package name resolved through `package.json` `exports` (`@acme/billing`).
+Hono:
 
-## Also recognized
+- `new Hono()` and `new Hono().basePath('/x')`
+- `get`, `post`, `put`, `patch`, `delete`, `all`, and `on`, including chains such as `app.get(...).post(...)`
+- `app.route('/prefix', subApp)` across files, including nested mounts
+- `@hono/zod-openapi` (`OpenAPIHono` and `createRoute`); `{id}` is shown as `:id`
+- Monorepo imports via `tsconfig` paths and package `exports`
 
-- **Express** — `app` / `router.METHOD`, `router.route().get().post()`, and `app.use("/prefix", router)` across files.
-- **Fastify** — `fastify.METHOD`, `route({ method, url })`, and `register(plugin, { prefix })`, including nested plugins.
-- **NestJS** — `@Controller` and `@Get` / `@Post` / `@Put` / `@Patch` / `@Delete`, plus `setGlobalPrefix`.
+Express is secondary: `app` and `router` methods, route chains, and `app.use('/prefix', router)` across files. Fastify plugins and NestJS controller decorators are read when they are in the workspace.
 
-Paths have to be string literals or constants the compiler can fold. Dynamic paths are skipped.
+## Usage
+
+Open **Path Operation Explorer** from the Node Routes icon in the activity bar. Each mounted prefix is a group (`/items`, `5 routes`). Click a route or a group to jump to the definition. The tree updates when you save a source file.
+
+| Command | What it does |
+| --- | --- |
+| **Node Routes: Search Path Operations...** | Quick-pick a route and jump to it |
+| **Node Routes: Refresh Path Operations** | Scan again |
+| **Node Routes: Collapse All** | Collapse every prefix group |
+| **Copy Path** | Context menu on a route or group |
 
 ## Settings
 
@@ -54,35 +45,6 @@ Paths have to be string literals or constants the compiler can fold. Dynamic pat
 | --- | --- |
 | `nodePathExplorer.include` | `**/*.{js,jsx,mjs,cjs,ts,tsx}` |
 | `nodePathExplorer.exclude` | `node_modules`, `dist`, `build`, `out`, `coverage`, `*.d.ts`, tests |
-
-## Commands
-
-| Command | What it does |
-| --- | --- |
-| **Node Routes: Search Path Operations...** | Quick-pick every route and jump to it |
-| **Node Routes: Refresh Path Operations** | Scan again |
-| **Node Routes: Collapse All** | Collapse every prefix group |
-| **Copy Path** | Context menu on a route or group |
-
-## Install a local build
-
-```bash
-npm install
-npx @vscode/vsce package
-code --install-extension nodejs-path-explorer-0.1.0.vsix
-```
-
-Reload the window, open a Hono (or Express) workspace, and choose the Node Routes icon in the activity bar. The extension id is `gengue.nodejs-path-explorer`.
-
-## Development
-
-```bash
-npm install
-npm test
-npm run compile
-```
-
-`npm test` runs the analyzer against fixture apps in `fixtures/`. Hono coverage lives in `fixtures/hono-app` (the tree in the screenshot), `fixtures/hono-patterns` (base path, chains, `app.on`, OpenAPI), and `fixtures/hono-monorepo` (path aliases, package exports, three levels of `route()`).
 
 ## License
 
