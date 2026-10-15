@@ -115,6 +115,7 @@ export const DEFAULT_EXCLUDE = [
   "**/.cache/**",
   "**/.pnpm/**",
   "**/storybook-static/**",
+  "**/generated/**",
 ];
 
 /**
@@ -136,11 +137,39 @@ export const DISCOVERY_EXCLUDES = [
   "**/.cache/**",
   "**/.pnpm/**",
   "**/storybook-static/**",
+  "**/generated/**",
   "**/*.d.ts",
 ];
 
 export function discoveryExcludeGlob(): string {
-  return `{${DISCOVERY_EXCLUDES.join(",")}}`;
+  return combineExcludeGlob(DISCOVERY_EXCLUDES) ?? "";
+}
+
+/** VS Code exclude settings are `{ "glob": true }` maps. Disabled entries are omitted. */
+export function excludePatternsFromSetting(value: unknown): string[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const patterns: string[] = [];
+  for (const [pattern, enabled] of Object.entries(value as Record<string, unknown>)) {
+    if (enabled) patterns.push(pattern);
+  }
+  return patterns;
+}
+
+/**
+ * One glob for `workspace.findFiles`. Patterns that contain commas or braces are
+ * left out of the brace group; callers still apply them with `filterSourceFiles`.
+ */
+export function combineExcludeGlob(patterns: string[]): string | undefined {
+  const safe = [
+    ...new Set(
+      patterns
+        .map((pattern) => pattern.trim())
+        .filter((pattern) => pattern.length > 0 && !pattern.includes(",") && !pattern.includes("{") && !pattern.includes("}")),
+    ),
+  ];
+  if (safe.length === 0) return undefined;
+  if (safe.length === 1) return safe[0];
+  return `{${safe.join(",")}}`;
 }
 
 /** Turn `**\/*.{ts,tsx}` into `**\/*.ts` and `**\/*.tsx` so one extension cannot crowd out another. */

@@ -12,8 +12,18 @@ import {
   type QuickPickItem,
   type TextDocument,
 } from "vscode";
-import { analyzeFiles } from "./analyzer";
-import { DEFAULT_EXCLUDE, DEFAULT_INCLUDE, discoveryExcludeGlob, expandIncludePatterns, filterSourceFiles } from "./glob";
+import path from "node:path";
+import { analyzeFiles, emptyStats } from "./analyzer";
+import { dropGitignored } from "./gitIgnore";
+import {
+  DEFAULT_EXCLUDE,
+  DEFAULT_INCLUDE,
+  DISCOVERY_EXCLUDES,
+  combineExcludeGlob,
+  excludePatternsFromSetting,
+  expandIncludePatterns,
+  filterSourceFiles,
+} from "./glob";
 import { countRoutesInApp, getRouteLabel, relativeFile } from "./labels";
 import type { SourceLocation } from "./types";
 import { PathOperationTreeProvider } from "./treeProvider";
@@ -38,19 +48,48 @@ export function activate(context: ExtensionContext): void {
 
   const scan = async (): Promise<void> => {
     const token = ++scanToken;
+    const started = Date.now();
     try {
-      const files = await discoverFiles();
+      treeView.message = "Discovering route files…";
+      const discovered = await discoverFiles();
       if (token !== scanToken) return;
-      const apps = analyzeFiles(files);
+      const discoverMs = Date.now() - started;
+      output.appendLine(
+        `[scan] discovered ${discovered.files.length} file(s) in ${discoverMs}ms via ${discovered.mode}` +
+          `${discovered.capped ? " (discovery cap hit)" : ""}`,
+      );
+      const stats = emptyStats();
+      treeView.message = `Checking ${discovered.files.length} files…`;
+      const apps = await analyzeFiles(discovered.files, {
+        stats,
+        isCancelled: () => token !== scanToken,
+        onProgress: (message) => {
+          if (token !== scanToken) return;
+          treeView.message = message;
+        },
+      });
       if (token !== scanToken) return;
       provider.setApps(apps, workspaceLabel());
+      treeView.message = "";
       const routes = apps.reduce((total, app) => total + countRoutesInApp(app), 0);
       output.appendLine(
-        `Scanned ${files.length} file(s), found ${routes} route(s) across ${apps.length} app(s).`,
+        `[scan] prefilter ${stats.candidates} → ${stats.matched} framework file(s) in ${stats.prefilterMs}ms`,
       );
+      output.appendLine(
+        `[scan] parsed ${stats.parsed} file(s) in ${stats.parseMs}ms${stats.capped ? " (parse cap hit)" : ""}`,
+      );
+      if (stats.factoryDepthHits > 0) {
+        output.appendLine(`[scan] factory follow stopped early ${stats.factoryDepthHits} time(s)`);
+      }
+      output.appendLine(
+        `[scan] linked ${routes} route(s) across ${apps.length} app(s) in ${stats.linkMs}ms`,
+      );
+      output.appendLine(`[scan] done in ${Date.now() - started}ms`);
     } catch (error) {
+      if (token !== scanToken) return;
       const message = error instanceof Error ? error.message : String(error);
       output.appendLine(`Scan failed: ${message}`);
+      treeView.message = "";
       provider.setApps([], workspaceLabel());
       window.showErrorMessage(`Node.js Path Explorer: ${message}`);
     }
@@ -117,21 +156,73 @@ export function deactivate(): void {
   scanToken++;
 }
 
-async function discoverFiles(): Promise<string[]> {
-  const scope = workspace.workspaceFolders?.[0]?.uri ?? null;
+const MAX_DISCOVERED = 20_000;
+
+async function discoverFiles(): Promise<{ files: string[]; mode: string; capped: boolean }> {
+  const folders = workspace.workspaceFolders ?? [];
+  const scope = folders[0]?.uri ?? null;
   const config = workspace.getConfiguration("nodePathExplorer", scope);
   const include = readPatterns(config.get("include"), DEFAULT_INCLUDE);
   const exclude = readPatterns(config.get("exclude"), DEFAULT_EXCLUDE);
+  const filesExclude = excludePatternsFromSetting(workspace.getConfiguration("files", scope).get("exclude"));
+  const searchExclude = excludePatternsFromSetting(workspace.getConfiguration("search", scope).get("exclude"));
+  const excludeGlobs = [...new Set([...DISCOVERY_EXCLUDES, ...exclude, ...filesExclude, ...searchExclude])];
   const found = new Set<string>();
-  // No tight result cap: the exclude list has to drop build output first, or a
-  // monorepo search returns only `dist/` and the analyzer sees zero sources.
-  const excludeGlob = discoveryExcludeGlob();
+  let capped = false;
+  let mode = "findFiles";
+  const finder = (workspace as { findFiles2?: FindFiles2 }).findFiles2;
+
   for (const pattern of expandIncludePatterns(include)) {
-    const uris = await workspace.findFiles(pattern, excludeGlob, 100_000);
+    if (found.size >= MAX_DISCOVERED) {
+      capped = true;
+      break;
+    }
+    const room = MAX_DISCOVERED - found.size;
+    let uris: Array<{ fsPath: string }> = [];
+    if (typeof finder === "function") {
+      try {
+        uris = await finder.call(workspace, pattern, {
+          exclude: excludeGlobs,
+          useExcludeSettings: 3,
+          useIgnoreFiles: true,
+          maxResults: room,
+        });
+        mode = "findFiles2";
+      } catch {
+        uris = await workspace.findFiles(pattern, combineExcludeGlob(excludeGlobs), room);
+      }
+    } else {
+      uris = await workspace.findFiles(pattern, combineExcludeGlob(excludeGlobs), room);
+    }
+    if (uris.length >= room) capped = true;
     for (const uri of uris) found.add(uri.fsPath);
   }
-  return filterSourceFiles([...found], include, exclude);
+
+  let files = filterSourceFiles([...found], include, [...exclude, ...DISCOVERY_EXCLUDES]);
+  const kept = new Set<string>();
+  for (const folder of folders) {
+    const root = folder.uri.fsPath;
+    const inside = files.filter((file) => file === root || file.startsWith(root + path.sep));
+    for (const file of await dropGitignored(root, inside)) kept.add(file);
+  }
+  if (folders.length > 0) {
+    for (const file of files) {
+      const inside = folders.some((folder) => file === folder.uri.fsPath || file.startsWith(folder.uri.fsPath + path.sep));
+      if (!inside) kept.add(file);
+    }
+    files = [...kept];
+  }
+  return { files, mode, capped };
 }
+
+interface FindFiles2Options {
+  exclude?: string[];
+  useExcludeSettings?: number;
+  maxResults?: number;
+  useIgnoreFiles?: boolean;
+}
+
+type FindFiles2 = (pattern: string, options?: FindFiles2Options) => Thenable<Array<{ fsPath: string }>>;
 
 function readPatterns(value: unknown, fallback: string[]): string[] {
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) return fallback;

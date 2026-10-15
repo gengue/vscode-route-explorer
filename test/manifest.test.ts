@@ -43,8 +43,11 @@ describe("package manifest", () => {
     assert.equal(manifest.galleryBanner.theme, "dark");
     assert.ok(fs.existsSync(path.join(root, manifest.icon)));
     assert.equal(manifest.main, "./dist/extension.js");
-    assert.ok(manifest.activationEvents.some((event) => event.includes("*.ts")));
-    assert.ok(manifest.activationEvents.some((event) => event.includes("*.js")));
+    assert.ok(manifest.activationEvents.includes("onView:node-path-operation-explorer"));
+    assert.equal(
+      manifest.activationEvents.some((event) => event.startsWith("workspaceContains")),
+      false,
+    );
     assert.ok(fs.existsSync(path.join(root, "LICENSE")));
   });
 

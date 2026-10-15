@@ -5,15 +5,15 @@ import { buildExplorerElements } from "../src/treeModel";
 import { analyzeFixture, routesOf } from "./helpers";
 import type { RouterDefinition } from "../src/types";
 
-describe("labels", () => {
-  it("names an app binding after the backend/app folder", () => {
-    const [app] = analyzeFixture("express-app");
+describe("labels", async () => {
+  it("names an app binding after the backend/app folder", async () => {
+    const [app] = await analyzeFixture("express-app");
     assert.equal(app.name, "app");
     assert.equal(getAppLabel(app), "backend/app");
   });
 
-  it("shows router prefixes relative to their parent and counts nested routes", () => {
-    const [app] = analyzeFixture("express-app");
+  it("shows router prefixes relative to their parent and counts nested routes", async () => {
+    const [app] = await analyzeFixture("express-app");
     const elements = buildExplorerElements([app], "express-app");
     assert.equal(elements.length, 1);
     assert.equal(elements[0].type, "app");
@@ -42,8 +42,8 @@ describe("labels", () => {
     );
   });
 
-  it("labels a route with its method and full path", () => {
-    const routes = routesOf(analyzeFixture("express-app"));
+  it("labels a route with its method and full path", async () => {
+    const routes = routesOf(await analyzeFixture("express-app"));
     const patch = routes.find((route) => route.method === "PATCH");
     assert.ok(patch);
     assert.equal(getRouteLabel(patch), "PATCH /users/:id");

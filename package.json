@@ -2,7 +2,7 @@
   "name": "nodejs-path-explorer",
   "displayName": "Hono Route Explorer",
   "description": "Browse Hono routes in a sidebar, grouped by prefix, and jump to their definitions. Also reads Express, Fastify, and NestJS.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "gengue",
   "license": "MIT",
   "repository": {
@@ -34,13 +34,10 @@
   "icon": "images/icon.png",
   "main": "./dist/extension.js",
   "activationEvents": [
-    "workspaceContains:**/*.ts",
-    "workspaceContains:**/*.tsx",
-    "workspaceContains:**/*.js",
-    "workspaceContains:**/*.jsx",
-    "workspaceContains:**/*.mjs",
-    "workspaceContains:**/*.cjs",
-    "onCommand:nodePathExplorer.searchPathOperations"
+    "onView:node-path-operation-explorer",
+    "onCommand:nodePathExplorer.refresh",
+    "onCommand:nodePathExplorer.searchPathOperations",
+    "onCommand:nodePathExplorer.collapseAll"
   ],
   "contributes": {
     "commands": [
@@ -186,7 +183,8 @@
             "**/.output/**",
             "**/.cache/**",
             "**/.pnpm/**",
-            "**/storybook-static/**"
+            "**/storybook-static/**",
+            "**/generated/**"
           ],
           "scope": "resource",
           "description": "Glob patterns of files and folders to skip while scanning."
