@@ -21,9 +21,9 @@ function expectRoute(
   assert.match(around, new RegExp(handler.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 }
 
-describe("hono app tree", () => {
-  it("groups mounted sub-apps by prefix, the way the FastAPI explorer groups routers", () => {
-    const apps = analyzeFixture("hono-app");
+describe("hono app tree", async () => {
+  it("groups mounted sub-apps by prefix, the way the FastAPI explorer groups routers", async () => {
+    const apps = await analyzeFixture("hono-app");
     assert.equal(apps.length, 1);
     assert.equal(apps[0].framework, "hono");
     assert.equal(apps[0].name, "app");
@@ -60,9 +60,9 @@ describe("hono app tree", () => {
   });
 });
 
-describe("hono patterns", () => {
-  it("resolves basePath, chains, app.on, inline apps, and OpenAPI routes", () => {
-    const apps = analyzeFixture("hono-patterns");
+describe("hono patterns", async () => {
+  it("resolves basePath, chains, app.on, inline apps, and OpenAPI routes", async () => {
+    const apps = await analyzeFixture("hono-patterns");
     const map = routeMap(apps);
 
     expectRoute(map, "GET", "/api/health", "health");
@@ -90,9 +90,9 @@ describe("hono patterns", () => {
   });
 });
 
-describe("hono monorepo", () => {
-  it("follows tsconfig paths, package exports, and nested route() mounts", () => {
-    const apps = analyzeFixture("hono-monorepo");
+describe("hono monorepo", async () => {
+  it("follows tsconfig paths, package exports, and nested route() mounts", async () => {
+    const apps = await analyzeFixture("hono-monorepo");
     assert.equal(apps.length, 1);
     assert.equal(apps[0].framework, "hono");
     const map = routeMap(apps);

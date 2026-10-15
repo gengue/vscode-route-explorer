@@ -19,9 +19,9 @@ function expectRoute(
   assert.match(around, new RegExp(handler.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 }
 
-describe("express", () => {
-  it("resolves router mounts across files, including barrel re-exports", () => {
-    const apps = analyzeFixture("express-app");
+describe("express", async () => {
+  it("resolves router mounts across files, including barrel re-exports", async () => {
+    const apps = await analyzeFixture("express-app");
     assert.equal(apps.length, 1);
     assert.equal(apps[0].framework, "express");
     assert.equal(countRoutesInApp(apps[0]), 23);
@@ -52,8 +52,8 @@ describe("express", () => {
     assert.equal(path.basename(listed?.location.filePath ?? ""), "items.ts");
   });
 
-  it("understands nested routers, route chains, const paths, arrays, and middleware", () => {
-    const apps = analyzeFixture("express-patterns");
+  it("understands nested routers, route chains, const paths, arrays, and middleware", async () => {
+    const apps = await analyzeFixture("express-patterns");
     const map = routeMap(apps);
 
     expectRoute(map, "GET", "/api/items/:id", "getItem");
@@ -77,17 +77,17 @@ describe("express", () => {
     );
   });
 
-  it("follows CommonJS require() mounts", () => {
-    const map = routeMap(analyzeFixture("express-cjs"));
+  it("follows CommonJS require() mounts", async () => {
+    const map = routeMap(await analyzeFixture("express-cjs"));
     expectRoute(map, "GET", "/items", "listItems");
     expectRoute(map, "POST", "/items", "createItem");
     expectRoute(map, "GET", "/health", "health");
   });
 });
 
-describe("fastify", () => {
-  it("resolves register prefixes across files and route option objects", () => {
-    const apps = analyzeFixture("fastify-app");
+describe("fastify", async () => {
+  it("resolves register prefixes across files and route option objects", async () => {
+    const apps = await analyzeFixture("fastify-app");
     assert.equal(apps.length, 1);
     assert.equal(apps[0].framework, "fastify");
     const map = routeMap(apps);
@@ -106,9 +106,9 @@ describe("fastify", () => {
   });
 });
 
-describe("nestjs", () => {
-  it("reads controller decorators, versions, and the global prefix", () => {
-    const apps = analyzeFixture("nest-app");
+describe("nestjs", async () => {
+  it("reads controller decorators, versions, and the global prefix", async () => {
+    const apps = await analyzeFixture("nest-app");
     assert.equal(apps.length, 1);
     assert.equal(apps[0].framework, "nest");
     assert.equal(apps[0].name, "app");

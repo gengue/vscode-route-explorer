@@ -19,7 +19,7 @@ export function listFiles(dir: string): string[] {
   return out;
 }
 
-export function analyzeFixture(name: string): AppDefinition[] {
+export async function analyzeFixture(name: string): Promise<AppDefinition[]> {
   const dir = path.join(repoRoot(), "fixtures", name);
   const files = filterSourceFiles(listFiles(dir), DEFAULT_INCLUDE, DEFAULT_EXCLUDE);
   return analyzeFiles(files);

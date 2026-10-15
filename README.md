@@ -44,7 +44,7 @@ Open **Path Operation Explorer** from the Node Routes icon in the activity bar. 
 | Setting | Default |
 | --- | --- |
 | `nodePathExplorer.include` | `**/*.{js,jsx,mjs,cjs,ts,tsx}` |
-| `nodePathExplorer.exclude` | `node_modules`, `dist`, `build`, `out`, `coverage`, `*.d.ts`, tests |
+| `nodePathExplorer.exclude` | `node_modules`, `dist`, `build`, `out`, `coverage`, `generated`, `*.d.ts`, tests |
 
 ## License
 

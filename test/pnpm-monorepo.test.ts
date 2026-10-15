@@ -4,9 +4,9 @@ import { getAppLabel, getRouterLabel } from "../src/labels";
 import { buildExplorerElements } from "../src/treeModel";
 import { analyzeFixture, lineText, routesOf } from "./helpers";
 
-describe("pnpm monorepo hono apps", () => {
-  it("mounts factory apps per package and names inline handlers from describeRoute", () => {
-    const apps = analyzeFixture("pnpm-monorepo");
+describe("pnpm monorepo hono apps", async () => {
+  it("mounts factory apps per package and names inline handlers from describeRoute", async () => {
+    const apps = await analyzeFixture("pnpm-monorepo");
     const labels = apps.map((app) => getAppLabel(app)).sort();
     assert.deepEqual(labels, ["apps/billing", "apps/notify"]);
 

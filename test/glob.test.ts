@@ -31,7 +31,7 @@ describe("globs", () => {
   it("expands include braces and excludes build output before the search cap", () => {
     assert.deepEqual(expandIncludePatterns(["**/*.{ts,tsx}"]), ["**/*.ts", "**/*.tsx"]);
     const exclude = discoveryExcludeGlob();
-    for (const pattern of ["**/node_modules/**", "**/dist/**", "**/.turbo/**", "**/*.d.ts"]) {
+    for (const pattern of ["**/node_modules/**", "**/dist/**", "**/.turbo/**", "**/generated/**", "**/*.d.ts"]) {
       assert.equal(exclude.includes(pattern), true, pattern);
     }
     const kept = filterSourceFiles(
